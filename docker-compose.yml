@@ -1,0 +1,46 @@
+services:
+  market-service:
+    build: ./services/market-service
+    restart: unless-stopped
+    environment:
+      PORT: 3001
+      MARKET_EXCHANGE: ${MARKET_EXCHANGE:-binance}
+    expose: ["3001"]
+
+  pine-service:
+    build: ./services/pine-service
+    restart: unless-stopped
+    environment:
+      PORT: 3002
+    expose: ["3002"]
+
+  trading-service:
+    build: ./services/trading-service
+    restart: unless-stopped
+    environment:
+      PORT: 3003
+      TRADING_EXCHANGE: ${TRADING_EXCHANGE:-binance}
+      TESTNET: ${TESTNET:-true}
+      TRADING_ENABLED: ${TRADING_ENABLED:-false}
+      API_KEY: ${API_KEY}
+      API_SECRET: ${API_SECRET}
+      MAX_ORDER_AMOUNT: ${MAX_ORDER_AMOUNT:-0.001}
+    expose: ["3003"]
+
+  gateway:
+    build: ./services/gateway
+    restart: unless-stopped
+    depends_on: [market-service, pine-service, trading-service]
+    environment:
+      PORT: 3000
+      MARKET_SERVICE_URL: http://market-service:3001
+      PINE_SERVICE_URL: http://pine-service:3002
+      TRADING_SERVICE_URL: http://trading-service:3003
+    expose: ["3000"]
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on: [gateway]
+    ports:
+      - "${FRONTEND_PORT:-8000}:80"
